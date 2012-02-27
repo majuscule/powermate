@@ -4,19 +4,26 @@ import PowerMate
 import System.IO
 import System.Process
 import Text.Regex.Posix
+import Data.Time
 
 data State = State {
   stPowerMate   :: Handle,
   stVolume      :: Int,
   stPrevDir     :: Int,
-  stPrevAction  :: Int
+  stPrevAction  :: Int,
+  stLastPress   :: UTCTime
 }
 
 processEvent :: State -> Event -> IO State
 processEvent state (Button True) = do
-  createProcess (proc "music-toggle" [])
+  time <- getCurrentTime
+  state <- updateLastPress state (time)
   return state
 processEvent state (Button False) = do
+  time <- getCurrentTime
+  if (diffUTCTime (time) (stLastPress state) > 0.8) then
+    ( do c <- runCommand "amixer set Master toggle"; return () )
+    else ( do c <- runCommand "music-toggle"; return () )
   return state
 
 processEvent state (Rotate dir) = do
@@ -33,9 +40,6 @@ processEvent state (Rotate dir) = do
   state <- updatePrevState state (if dir < 2 then 1 else 0)
   updateBrightness state
   state <- updatePrevAction state (if (stPrevAction state) == 1 then 0 else 1)
-  return state
-
-processEvent state (StatusChange status) = do
   return state
 
 readState :: State -> IO State
@@ -61,7 +65,8 @@ volumeUp state = do
     stPowerMate=(stPowerMate state),
     stVolume=(max 0 $ 1+(stVolume state)),
     stPrevAction=(stPrevAction state),
-    stPrevDir=(stPrevDir state) }
+    stPrevDir=(stPrevDir state),
+    stLastPress=(stLastPress state) }
   state <- updatePrevAction state 1
   return state
 
@@ -72,7 +77,8 @@ volumeDown state = do
     stPowerMate=(stPowerMate state),
     stVolume=(max 0 $ (stVolume state)-1),
     stPrevAction=(stPrevAction state),
-    stPrevDir=(stPrevDir state) }
+    stPrevDir=(stPrevDir state),
+    stLastPress=(stLastPress state) }
   state <- updatePrevAction state 0
   return state
 
@@ -82,7 +88,8 @@ updatePrevState state dir = do
     stPowerMate=(stPowerMate state),
     stVolume=(stVolume state),
     stPrevAction=(stPrevAction state),
-    stPrevDir=dir }
+    stPrevDir=dir,
+    stLastPress=(stLastPress state) }
   return state
 
 updatePrevAction :: State -> Int -> IO State
@@ -91,7 +98,18 @@ updatePrevAction state action = do
     stPowerMate=(stPowerMate state),
     stVolume=(stVolume state),
     stPrevAction=action,
-    stPrevDir=(stPrevDir state) }
+    stPrevDir=(stPrevDir state),
+    stLastPress=(stLastPress state) }
+  return state
+
+updateLastPress :: State -> UTCTime -> IO State
+updateLastPress state lastPress = do
+  state <- readState $ State {
+    stPowerMate=(stPowerMate state),
+    stVolume=(stVolume state),
+    stPrevAction=(stPrevAction state),
+    stPrevDir=(stPrevDir state),
+    stLastPress=lastPress }
   return state
 
 loop :: FilePath -> IO ()
@@ -104,11 +122,13 @@ loop devname = do
                       (take
                         (subtract 2
                           (length alsaMaster)) alsaMaster)) :: Int
+  time <- getCurrentTime
   state <- readState $ State {
     stPowerMate=powermate,
     stVolume=volume,
     stPrevAction=0,
-    stPrevDir=0 }
+    stPrevDir=0,
+    stLastPress=time }
   updateBrightness state
 
   next state $ \call -> do
