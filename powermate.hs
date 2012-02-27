@@ -22,8 +22,8 @@ processEvent state (Button True) = do
 processEvent state (Button False) = do
   time <- getCurrentTime
   if (diffUTCTime (time) (stLastPress state) > 0.8) then
-    ( do c <- runCommand "amixer set Master toggle"; return () )
-    else ( do c <- runCommand "music-toggle"; return () )
+    ( do runCommand "amixer set Master toggle"; return () )
+    else ( do runCommand "music-toggle"; return () )
   return state
 
 processEvent state (Rotate dir) = do
