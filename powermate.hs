@@ -7,9 +7,10 @@ import Control.Monad
 import Text.Regex.Posix
 
 data State = State {
-  stPowerMate  :: Handle,
-  stVolume     :: Int,
-  stDir        :: Int
+  stPowerMate   :: Handle,
+  stVolume      :: Int,
+  stPrevDir     :: Int,
+  stPrevAction  :: Int
 }
 
 processEvent :: State -> Event -> IO State
@@ -20,8 +21,19 @@ processEvent state (Button False) = do
   return state
 
 processEvent state (Rotate dir) = do
-  state <- (if dir < 2 then volumeUp else volumeDown) state
+  state <- (if dir < 2
+              && (stPrevDir state) == 1
+              && (stPrevAction state) == 1
+                then volumeUp
+              else return) state
+  state <- (if dir > 2
+              && (stPrevDir state) == 0
+              && (stPrevAction state) == 0
+                then volumeDown
+              else return) state
+  state <- updatePrevState state (if dir < 2 then 1 else 0)
   updateBrightness state
+  state <- updatePrevAction state (if (stPrevAction state) == 1 then 0 else 1)
   return state
 
 processEvent state (StatusChange status) = do
@@ -43,22 +55,44 @@ updateBrightness state = do
   writeStatus (stPowerMate state) $
     statusInit { brightness=brightness }
 
-volumeUp  :: State -> IO State
+volumeUp :: State -> IO State
 volumeUp state = do
   createProcess (proc "volume-up" [])
   state <- readState $ State {
     stPowerMate=(stPowerMate state),
     stVolume=(max 0 $ 1+(stVolume state)),
-    stDir=(stDir state) }
+    stPrevAction=(stPrevAction state),
+    stPrevDir=(stPrevDir state) }
+  state <- updatePrevAction state 1
   return state
 
-volumeDown  :: State -> IO State
+volumeDown :: State -> IO State
 volumeDown state = do
   createProcess (proc "volume-down" [])
   state <- readState $ State {
     stPowerMate=(stPowerMate state),
     stVolume=(max 0 $ (stVolume state)-1),
-    stDir=(stDir state) }
+    stPrevAction=(stPrevAction state),
+    stPrevDir=(stPrevDir state) }
+  state <- updatePrevAction state 0
+  return state
+
+updatePrevState :: State -> Int -> IO State
+updatePrevState state dir = do
+  state <- readState $ State {
+    stPowerMate=(stPowerMate state),
+    stVolume=(stVolume state),
+    stPrevAction=(stPrevAction state),
+    stPrevDir=dir }
+  return state
+
+updatePrevAction :: State -> Int -> IO State
+updatePrevAction state action = do
+  state <- readState $ State {
+    stPowerMate=(stPowerMate state),
+    stVolume=(stVolume state),
+    stPrevAction=action,
+    stPrevDir=(stPrevDir state) }
   return state
 
 loop :: FilePath -> IO ()
@@ -74,7 +108,8 @@ loop devname = do
   state <- readState $ State {
     stPowerMate=powermate,
     stVolume=volume,
-    stDir=1 }
+    stPrevAction=0,
+    stPrevDir=0 }
   updateBrightness state
 
   next state $ \call -> do
