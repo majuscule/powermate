@@ -3,7 +3,6 @@ module Main where
 import PowerMate
 import System.IO
 import System.Process
-import Control.Monad
 import Text.Regex.Posix
 
 data State = State {
