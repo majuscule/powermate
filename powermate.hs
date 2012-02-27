@@ -3,6 +3,7 @@ module Main where
 import PowerMate
 import System.IO
 import System.Process
+import Control.Monad
 import Text.Regex.Posix
 import Data.Time
 
@@ -11,6 +12,7 @@ data State = State {
   stVolume      :: Int,
   stPrevDir     :: Int,
   stPrevAction  :: Int,
+  stPressed     :: Bool,
   stLastPress   :: UTCTime
 }
 
@@ -18,25 +20,30 @@ processEvent :: State -> Event -> IO State
 processEvent state (Button True) = do
   time <- getCurrentTime
   state <- updateLastPress state (time)
+  state <- updateButton state True
   return state
 processEvent state (Button False) = do
   time <- getCurrentTime
-  if (diffUTCTime (time) (stLastPress state) > 0.8) then
-    ( do runCommand "amixer set Master toggle"; return () )
+  if (diffUTCTime (time) (stLastPress state) > 0.8)
+    then ( do runCommand "amixer set Master toggle"; return () )
     else ( do runCommand "music-toggle"; return () )
+  state <- updateButton state False
   return state
 
 processEvent state (Rotate dir) = do
-  state <- (if dir < 2
+  state <- (if (stPressed state) == False
+              && dir < 2
               && (stPrevDir state) == 1
               && (stPrevAction state) == 1
                 then volumeUp
               else return) state
-  state <- (if dir > 2
+  state <- (if (stPressed state) == False
+              && dir > 2
               && (stPrevDir state) == 0
               && (stPrevAction state) == 0
                 then volumeDown
               else return) state
+  when ((stPressed state) == True && dir < 2) ( do runCommand "next"; return () )
   state <- updatePrevState state (if dir < 2 then 1 else 0)
   updateBrightness state
   state <- updatePrevAction state (if (stPrevAction state) == 1 then 0 else 1)
@@ -66,6 +73,7 @@ volumeUp state = do
     stVolume=(max 0 $ 1+(stVolume state)),
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
+    stPressed=(stPressed state),
     stLastPress=(stLastPress state) }
   state <- updatePrevAction state 1
   return state
@@ -78,6 +86,7 @@ volumeDown state = do
     stVolume=(max 0 $ (stVolume state)-1),
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
+    stPressed=(stPressed state),
     stLastPress=(stLastPress state) }
   state <- updatePrevAction state 0
   return state
@@ -89,6 +98,7 @@ updatePrevState state dir = do
     stVolume=(stVolume state),
     stPrevAction=(stPrevAction state),
     stPrevDir=dir,
+    stPressed=(stPressed state),
     stLastPress=(stLastPress state) }
   return state
 
@@ -99,6 +109,18 @@ updatePrevAction state action = do
     stVolume=(stVolume state),
     stPrevAction=action,
     stPrevDir=(stPrevDir state),
+    stPressed=(stPressed state),
+    stLastPress=(stLastPress state) }
+  return state
+
+updateButton :: State -> Bool -> IO State
+updateButton state button = do
+  state <- readState $ State {
+    stPowerMate=(stPowerMate state),
+    stVolume=(stVolume state),
+    stPrevAction=(stPrevAction state),
+    stPrevDir=(stPrevDir state),
+    stPressed=button,
     stLastPress=(stLastPress state) }
   return state
 
@@ -109,6 +131,7 @@ updateLastPress state lastPress = do
     stVolume=(stVolume state),
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
+    stPressed=(stPressed state),
     stLastPress=lastPress }
   return state
 
@@ -128,6 +151,7 @@ loop devname = do
     stVolume=volume,
     stPrevAction=0,
     stPrevDir=0,
+    stPressed=False,
     stLastPress=time }
   updateBrightness state
 
