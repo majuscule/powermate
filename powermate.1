@@ -1,0 +1,15 @@
+.TH powermate 1 "MARCH 2012" Linux "User Manual"
+.SH NAME
+powermate \- control alsa/mpd/pianobar with a griffin powermate
+.SH SYNOPSIS
+powermate uses the haskell-powermate bindings to control Alsa, MPD and Pianobar with a Griffin PowerMate, supporting long presses and twist motions.
+.SH DESCRIPTION
+Controls volume and LED brightness with a left or right turn (down, up respectively).
+Skips to next MPD/Pianobar track with a press and twist (turn right immediately after pressing).
+Mutes with a long press ( > 1 second).
+.SH FILES
+.I /usr/bin/powermate
+.RS
+Must be executed with /dev/input/* privileges.
+.SH AUTHOR
+Dylan Lloyd <dylan@dylansserver.com>
