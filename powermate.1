@@ -6,10 +6,26 @@ powermate uses the haskell-powermate bindings to control Alsa, MPD and Pianobar 
 .SH DESCRIPTION
 Controls volume and LED brightness with a left or right turn (down, up respectively).
 Skips to next MPD/Pianobar track with a press and twist (turn right immediately after pressing).
-Mutes with a long press ( > 1 second).
+Mutes with a long press (> 1 second).
+.SH NOTES
+This program needs read and write access to /dev/input/event*. It acquires this with a udev rule matching all /dev/input/event* files and assigning them to group input with 660 permissions. To use the program you must be a member of group input. Use `sudo gpasswd -a $(whoami) input` to add yourself to this group, and cycle your login for this to take affect.
+.SH EXAMPLE
+This program can be easily called with `powermate`, and is recommended to be launched with your login or X start.
 .SH FILES
 .I /usr/bin/powermate
 .RS
-Must be executed with /dev/input/* privileges.
+This executable file controls your powermate.
+.RE
+
+.I /lib/udev/rules.d/99-powermate.rules
+.RS
+This udev rule sets all /dev/input/event* files to group input and 660 permissions.
+.RE
+
+.I /usr/share/man/man1/powermate.1.gz
+.RS
+This man page.
+.RE
+
 .SH AUTHOR
 Dylan Lloyd <dylan@dylansserver.com>
