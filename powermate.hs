@@ -25,7 +25,7 @@ processEvent state (Button True) = do
 processEvent state (Button False) = do
   time <- getCurrentTime
   if (diffUTCTime (time) (stLastPress state) > 0.8)
-    then ( do runCommand "amixer set Master toggle"; return () )
+    then ( do runCommand "volume-toggle"; return () )
     else ( do runCommand "music-toggle"; return () )
   state <- updateButton state False
   return state
