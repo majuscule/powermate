@@ -18,14 +18,14 @@ This program can be easily called with `powermate`, and is recommended to be lau
 This executable file controls your powermate.
 .RE
 
-.I /lib/udev/rules.d/99-powermate.rules
-.RS
-This udev rule sets all /dev/input/event* files to group input and 660 permissions.
-.RE
-
 .I /usr/lib/{volume-up,volume-down,volume-toggle,back,next}
 .RS
 These shell scripts are called by powermate when an event occurs.
+.RE
+
+.I /lib/udev/rules.d/99-powermate.rules
+.RS
+This udev rule sets all /dev/input/event* files to group input and 660 permissions.
 .RE
 
 .I /usr/share/man/man1/powermate.1.gz
