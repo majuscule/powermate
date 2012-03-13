@@ -5,8 +5,8 @@ status=$(amixer get Master | tail -n1 | awk '{print $NF}')
 status=$(echo "${status%]}")
 status=$(echo "${status#[}")
 if [ $status == "on" ]
-  then notify-send -i /usr/share/icons/powermate/volume-on.png " "
-elif [ $status == "off" ]
   then notify-send -i /usr/share/icons/powermate/volume-mute.png " "
+elif [ $status == "off" ]
+  then notify-send -i /usr/share/icons/powermate/volume-on.png " "
 fi
 amixer set Master toggle
