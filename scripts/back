@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -n "$(pgrep pianobar)" ]
+then
+  notify-send -i /usr/share/icons/powermate/skip-backward.png "skip backward "
+  mpc next
+fi

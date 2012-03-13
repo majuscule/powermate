@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ -n "$(pgrep pianobar)" ]
+then
+  notify-send -i /usr/share/icons/powermate/skip-forward.png "skipping "
+  pianobar-next
+else
+  if [ -n "$(pgrep mpd)" ]
+  then
+    notify-send -i /usr/share/icons/powermate/skip-forward.png "skipping "
+    mpc next
+  fi
+fi

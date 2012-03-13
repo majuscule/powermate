@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export DISPLAY=:0
+amixer set Master 1-
+notify-send -i /usr/share/icons/powermate/volume-down.png " "

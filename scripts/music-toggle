@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -n "$(pgrep pianobar)" ]
+then
+  pianobar-toggle
+else
+  if [ -n "$(pgrep mpd)" ]
+  then
+    mpc toggle
+  fi
+fi
