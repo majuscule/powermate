@@ -25,7 +25,7 @@ processEvent state (Button True) = do
 processEvent state (Button False) = do
   time <- getCurrentTime
   if (diffUTCTime (time) (stLastPress state) > 0.8)
-    then ( do runCommand "volume-toggle"; return () )
+    then ( do createProcess(proc "volume-toggle" []); return () )
     else ( do runCommand "music-toggle"; return () )
   state <- updateButton state False
   return state
@@ -44,6 +44,7 @@ processEvent state (Rotate dir) = do
                 then volumeDown
               else return) state
   when ((stPressed state) == True && dir < 2) ( do runCommand "next"; return () )
+  when ((stPressed state) == True && dir > 2) ( do runCommand "back"; return () )
   state <- updatePrevState state (if dir < 2 then 1 else 0)
   updateBrightness state
   state <- updatePrevAction state (if (stPrevAction state) == 1 then 0 else 1)

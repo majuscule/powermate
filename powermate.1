@@ -9,6 +9,7 @@ Skips to next MPD/Pianobar track with a press and twist (turn right immediately 
 Mutes with a long press (> 1 second).
 .SH NOTES
 This program needs read and write access to /dev/input/event*. It acquires this with a udev rule matching all /dev/input/event* files and assigning them to group input with 660 permissions. To use the program you must be a member of group input. Use `sudo gpasswd -a $(whoami) input` to add yourself to this group, and cycle your login for this to take affect.
+This program also does not require alsa, mpd, mpc, pianobar or notify-send although it ceases to have much point without their existence. All events are controlled through easily editable shell scripts and can be adapted to any sound or music program that you use.
 .SH EXAMPLE
 This program can be easily called with `powermate`, and is recommended to be launched with your login or X start.
 .SH FILES
@@ -20,6 +21,11 @@ This executable file controls your powermate.
 .I /lib/udev/rules.d/99-powermate.rules
 .RS
 This udev rule sets all /dev/input/event* files to group input and 660 permissions.
+.RE
+
+.I /usr/lib/{volume-up,volume-down,volume-toggle,back,next}
+.RS
+These shell scripts are called by powermate when an event occurs.
 .RE
 
 .I /usr/share/man/man1/powermate.1.gz
