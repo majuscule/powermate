@@ -19,9 +19,14 @@ This program can be easily called with `powermate`, and is recommended to be lau
 This executable file controls your powermate.
 .RE
 
-.I /usr/lib/{volume-up,volume-down,volume-toggle,back,next}
+.I /usr/bin/{volume-up,volume-down,volume-toggle,back,next}
 .RS
 These shell scripts are called by powermate when an event occurs.
+.RE
+
+.I /usr/bin/pianobar-{next,pause}
+.RS
+These shell scripts control pianobar through the standard ctl fifo.
 .RE
 
 .I /lib/udev/rules.d/99-powermate.rules
