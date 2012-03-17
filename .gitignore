@@ -1,3 +1,10 @@
+makefile
 powermate
 *.o
 *.hi
+PKGBUILD
+powermate.install
+*.src.tar.gz
+*.pkg.tar.xz
+pkg/*
+src/*
