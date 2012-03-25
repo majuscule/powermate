@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ -n "$(pgrep pianobar)" ]
+if [ -n "$(pgrep mpd)" ]
 then
   notify-send -i /usr/share/icons/powermate/skip-backward.png "skip backward "
   mpc prev
