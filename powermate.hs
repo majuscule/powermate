@@ -3,17 +3,17 @@ module Main where
 import PowerMate
 import System.IO
 import System.Process
-import Control.Monad
 import Text.Regex.Posix
 import Data.Time
 
 data State = State {
-  stPowerMate   :: Handle,
-  stVolume      :: Int,
-  stPrevDir     :: Int,
-  stPrevAction  :: Int,
-  stPressed     :: Bool,
-  stLastPress   :: UTCTime
+  stPowerMate     :: Handle,
+  stVolume        :: Int,
+  stPrevDir       :: Int,
+  stPrevAction    :: Int,
+  stPressed       :: Bool,
+  stIndeterminate :: Bool,
+  stLastPress     :: UTCTime
 }
 
 processEvent :: State -> Event -> IO State
@@ -21,16 +21,21 @@ processEvent state (Button True) = do
   time <- getCurrentTime
   state <- updateLastPress state (time)
   state <- updateButton state True
+  state <- updateIndeterminate state True
   return state
 processEvent state (Button False) = do
   time <- getCurrentTime
-  if (diffUTCTime (time) (stLastPress state) > 0.8)
-    then ( do createProcess(proc "volume-toggle" []); return () )
-    else ( do runCommand "music-toggle"; return () )
+  if (stIndeterminate state)
+    then do
+    if (diffUTCTime (time) (stLastPress state) > 0.8)
+      then do createProcess(proc "volume-toggle" []); return ()
+      else do runCommand "music-toggle"; return ()
+  else return ()
   state <- updateButton state False
   return state
 
 processEvent state (Rotate dir) = do
+  state <- updateIndeterminate state False
   state <- (if (stPressed state) == False
               && dir < 2
               && (stPrevDir state) == 1
@@ -43,8 +48,11 @@ processEvent state (Rotate dir) = do
               && (stPrevAction state) == 0
                 then volumeDown
               else return) state
-  when ((stPressed state) == True && dir < 2) ( do runCommand "next"; return () )
-  when ((stPressed state) == True && dir > 2) ( do runCommand "back"; return () )
+  if stPressed state
+    then do
+    if dir < 2 then do runCommand "next"; return ()
+    else do runCommand "back"; return ()
+  else return ()
   state <- updatePrevState state (if dir < 2 then 1 else 0)
   updateBrightness state
   state <- updatePrevAction state (if (stPrevAction state) == 1 then 0 else 1)
@@ -66,6 +74,18 @@ updateBrightness state = do
   writeStatus (stPowerMate state) $
     statusInit { brightness=brightness }
 
+updateIndeterminate :: State -> Bool -> IO State
+updateIndeterminate state value = do
+  state <- readState $ State {
+    stPowerMate=(stPowerMate state),
+    stVolume=(stVolume state),
+    stPrevAction=(stPrevAction state),
+    stPrevDir=(stPrevDir state),
+    stPressed=(stPressed state),
+    stLastPress=(stLastPress state),
+    stIndeterminate=value }
+  return state
+
 volumeUp :: State -> IO State
 volumeUp state = do
   createProcess (proc "volume-up" [])
@@ -75,7 +95,8 @@ volumeUp state = do
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
     stPressed=(stPressed state),
-    stLastPress=(stLastPress state) }
+    stLastPress=(stLastPress state),
+    stIndeterminate=(stIndeterminate state) }
   state <- updatePrevAction state 1
   return state
 
@@ -88,7 +109,8 @@ volumeDown state = do
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
     stPressed=(stPressed state),
-    stLastPress=(stLastPress state) }
+    stLastPress=(stLastPress state),
+    stIndeterminate=(stIndeterminate state) }
   state <- updatePrevAction state 0
   return state
 
@@ -100,7 +122,8 @@ updatePrevState state dir = do
     stPrevAction=(stPrevAction state),
     stPrevDir=dir,
     stPressed=(stPressed state),
-    stLastPress=(stLastPress state) }
+    stLastPress=(stLastPress state),
+    stIndeterminate=(stIndeterminate state) }
   return state
 
 updatePrevAction :: State -> Int -> IO State
@@ -111,7 +134,8 @@ updatePrevAction state action = do
     stPrevAction=action,
     stPrevDir=(stPrevDir state),
     stPressed=(stPressed state),
-    stLastPress=(stLastPress state) }
+    stLastPress=(stLastPress state),
+    stIndeterminate=(stIndeterminate state) }
   return state
 
 updateButton :: State -> Bool -> IO State
@@ -122,7 +146,8 @@ updateButton state button = do
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
     stPressed=button,
-    stLastPress=(stLastPress state) }
+    stLastPress=(stLastPress state),
+    stIndeterminate=(stIndeterminate state) }
   return state
 
 updateLastPress :: State -> UTCTime -> IO State
@@ -133,7 +158,8 @@ updateLastPress state lastPress = do
     stPrevAction=(stPrevAction state),
     stPrevDir=(stPrevDir state),
     stPressed=(stPressed state),
-    stLastPress=lastPress }
+    stLastPress=lastPress,
+    stIndeterminate=(stIndeterminate state) }
   return state
 
 loop :: FilePath -> IO ()
@@ -153,7 +179,8 @@ loop devname = do
     stPrevAction=0,
     stPrevDir=0,
     stPressed=False,
-    stLastPress=time }
+    stLastPress=time,
+    stIndeterminate=False }
   updateBrightness state
 
   next state $ \call -> do
